@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>City Explorer Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f7f6;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 { color: #2c3e50; }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    select, button {
+      padding: 10px 15px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover { background-color: #2980b9; }
+
+    /* Loading Spinner */
+    .spinner {
+      display: none;
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #3498db;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Dashboard Layout */
+    .dashboard {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      flex: 1 1 250px;
+    }
+
+    .flag {
+      width: 80px;
+      border: 1px solid #ddd;
+    }
+
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>City Explorer Dashboard</h1>
+
+  <!-- Dropdown & Button -->
+  <div class="controls">
+    <select id="citySelect">
+      <option value="karachi">Karachi</option>
+      <option value="lahore">Lahore</option>
+      <option value="islamabad">Islamabad</option>
+      <option value="faisalabad">Faisalabad</option>
+      <option value="rawalpindi">Rawalpindi</option>
+      <option value="peshawar">Peshawar</option>
+      <option value="quetta">Quetta</option>
+    </select>
+    <button onclick="loadDashboard()">Explore City</button>
+  </div>
+
+  <!-- Loading Spinner & Output -->
+  <div id="spinner" class="spinner"></div>
+  <div id="errorMessage" class="error"></div>
+  <div id="dashboard" class="dashboard"></div>
+
+  <script>
+    // City Coordinates
+    const cities = {
+      karachi: { lat: 24.8607, lon: 67.0011, name: "Karachi" },
+      lahore: { lat: 31.5204, lon: 74.3587, name: "Lahore" },
+      islamabad: { lat: 33.6844, lon: 73.0479, name: "Islamabad" },
+      faisalabad: { lat: 31.4504, lon: 73.1350, name: "Faisalabad" },
+      rawalpindi: { lat: 33.5651, lon: 73.0169, name: "Rawalpindi" },
+      peshawar: { lat: 34.0151, lon: 71.5249, name: "Peshawar" },
+      quetta: { lat: 30.1798, lon: 66.9750, name: "Quetta" }
+    };
+
+    // Main Function using async/await
+    async function loadDashboard() {
+      const selectedKey = document.getElementById('citySelect').value;
+      const city = cities[selectedKey];
+
+      const spinner = document.getElementById('spinner');
+      const dashboard = document.getElementById('dashboard');
+      const errorDiv = document.getElementById('errorMessage');
+
+      // Clear previous data & show loading spinner
+      dashboard.innerHTML = '';
+      errorDiv.innerText = '';
+      spinner.style.display = 'block';
+
+      try {
+        // API URLs (No keys required)
+        const weatherUrl = https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current_weather=true;
+        const countryUrl = https://restcountries.com/v3.1/name/pakistan;
+
+        // Promise.all for fetching data in parallel
+        const [weatherRes, countryRes] = await Promise.all([
+          fetch(weatherUrl),
+          fetch(countryUrl)
+        ]);
+
+        if (!weatherRes.ok || !countryRes.ok) {
+          throw new Error('Failed to retrieve data from APIs.');
+        }
+
+        const weatherData = await weatherRes.json();
+        const countryData = (await countryRes.json())[0];
+
+        // Extracting required variables
+        const weather = weatherData.current_weather;
+        const flag = countryData.flags.svg;
+        const population = countryData.population.toLocaleString();
+        const languages = Object.values(countryData.languages).join(', ');
+        const currency = Object.values(countryData.currencies)[0].name;
+        const capital = countryData.capital[0];
+        const region = countryData.region;
+        const mapLink = countryData.maps.googleMaps;
+
+        // Building Rich HTML Output
+        dashboard.innerHTML = `
+          <div class="card">
+            <h2>Weather in ${city.name}</h2>
+            <p><strong>Temperature:</strong> ${weather.temperature} °C</p>
+            <p><strong>Wind Speed:</strong> ${weather.windspeed} km/h</p>
+            <p><strong>Wind Direction:</strong> ${weather.winddirection}°</p>
+          </div>
+
+          <div class="card">
+            <h2>Country Information</h2>
+            <img src="${flag}" alt="Flag" class="flag">
+            <p><strong>Population:</strong> ${population}</p>
+            <p><strong>Languages:</strong> ${languages}</p>
+            <p><strong>Currency:</strong> ${currency}</p>
+          </div>
+
+          <div class="card">
+            <h2>Region & Maps</h2>
+            <p><strong>Capital:</strong> ${capital}</p>
+            <p><strong>Region:</strong> ${region}</p>
+            <p><a href="${mapLink}" target="_blank">View Google Map Link</a></p>
+          </div>
+        `;
+
+      } catch (err) {
+        // Error handling with try/catch
+        errorDiv.innerText = 'Error loading data: ' + err.message;
+      } finally {
+        // Hide loading spinner
+        spinner.style.display = 'none';
+      }
+    }
+
+    // Automatically load initial city on page startup
+    loadDashboard();
+  </script>
+</body>
+</html>
