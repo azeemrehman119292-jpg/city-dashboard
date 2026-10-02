@@ -1,1 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>City Explorer Dashboard</title>
+  <style>
+    /* Dark Theme Base Styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
 
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .dashboard-container {
+      width: 100%;
+      max-width: 800px;
+      background: #1e293b;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      color: #38bdf8;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      color: #94a3b8;
+      margin-bottom: 24px;
+    }
+
+    /* Button Layout */
+    .city-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
+
+    .city-buttons button {
+      background-color: #334155;
+      color: #f8fafc;
+      border: 1px solid #475569;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .city-buttons button:hover {
+      background-color: #38bdf8;
+      color: #0f172a;
+      border-color: #38bdf8;
+    }
+
+    /* Card Layout Grid */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: #0f172a;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #334155;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .city-card {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border-color: #38bdf8;
+    }
+
+    .city-card h2 {
+      font-size: 1.8rem;
+      color: #f8fafc;
+    }
+
+    .country-info {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      margin: 4px 0 10px 0;
+    }
+
+    .condition {
+      font-weight: 600;
+      color: #38bdf8;
+    }
+
+    .card h3 {
+      font-size: 1rem;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+
+    .stat {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #f8fafc;
+    }
+
+    .sub-stat {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    /* Loading Spinner Animation */
+    .loader {
+      width: 48px;
+      height: 48px;
+      border: 5px solid #334155;
+      border-bottom-color: #38bdf8;
+      border-radius: 50%;
+      display: inline-block;
+      margin: 20px auto;
+      animation: rotation 1s linear infinite;
+    }
+
+    @keyframes rotation {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Error Card Styling */
+    .error-card {
+      background-color: #7f1d1d;
+      color: #fca5a5;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    /* Helper Class */
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard-container">
+    <header class="header">
+      <h1>City Explorer Dashboard</h1>
+      <p>Select a Pakistani city to view live weather updates</p>
+    </header>
+
+    <!-- 6 City Buttons -->
+    <div class="city-buttons">
+      <button onclick="getWeather('Faisalabad', 31.4504, 73.1350)">Faisalabad</button>
+      <button onclick="getWeather('Lahore', 31.5204, 74.3587)">Lahore</button>
+      <button onclick="getWeather('Karachi', 24.8607, 67.0011)">Karachi</button>
+      <button onclick="getWeather('Islamabad', 33.6844, 73.0479)">Islamabad</button>
+      <button onclick="getWeather('Peshawar', 34.0151, 71.5249)">Peshawar</button>
+      <button onclick="getWeather('Quetta', 30.1798, 66.9750)">Quetta</button>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loader" class="loader hidden"></div>
+
+    <!-- Error Message Display -->
+    <div id="error-message" class="error-card hidden"></div>
+
+    <!-- Weather Cards Container -->
+    <main id="weather-display" class="dashboard-grid hidden">
+      <!-- City Info & Country Flag -->
+      <div class="card city-card">
+        <h2><span id="city-name">--</span> 🇵🇰</h2>
+        <p class="country-info">Country: Pakistan | Flag: 🇵🇰</p>
+        <p class="condition" id="weather-condition">--</p>
+      </div>
+
+      <!-- Temperature Card -->
+      <div class="card">
+        <h3>Temperature</h3>
+        <p class="stat" id="temperature">-- °C</p>
+        <p class="sub-stat">Feels Like: <span id="feels-like">-- °C</span></p>
+      </div>
+
+      <!-- Humidity Card -->
+      <div class="card">
+        <h3>Humidity</h3>
+        <p class="stat" id="humidity">-- %</p>
+      </div>
+
+      <!-- Wind Speed Card -->
+      <div class="card">
+        <h3>Wind Speed</h3>
+        <p class="stat" id="wind-speed">-- km/h</p>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Weather condition code decoder
+    function getWeatherCondition(code) {
+      const weatherCodes = {
+        0: "Clear Sky ☀️",
+        1: "Mainly Clear 🌤️",
+        2: "Partly Cloudy ⛅",
+        3: "Overcast ☁️",
+        45: "Foggy 🌫️",
+        48: "Depositing Rime Fog 🌫️",
+        51: "Light Drizzle 🌧️",
+        61: "Slight Rain 🌧️",
+        63: "Moderate Rain 🌧️",
+        65: "Heavy Rain 🌧️",
+        80: "Rain Showers 🌦️",
+        95: "Thunderstorm 🌩️"
+      };
+      return weatherCodes[code] || "Weather Code: " + code;
+    }
+
+    // Async Fetch Weather Data using the specified Open-Meteo API endpoint
+    async function getWeather(cityName, lat, lon) {
+      const loader = document.getElementById("loader");
+      const weatherDisplay = document.getElementById("weather-display");
+      const errorMessage = document.getElementById("error-message");
+
+      // Reset state: show spinner, hide previous data/errors
+      loader.classList.remove("hidden");
+      weatherDisplay.classList.add("hidden");
+      errorMessage.classList.add("hidden");
+
+      const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m`;
+
+      try {
+        const response = await fetch(apiUrl);
+        
+        if (!response.ok) {
+          throw new Error("Unable to retrieve weather data.");
+        }
+
+        const data = await response.json();
+        const current = data.current;
+
+        // Render data to DOM elements
+        document.getElementById("city-name").innerText = cityName;
+        document.getElementById("weather-condition").innerText = getWeatherCondition(current.weather_code);
+        document.getElementById("temperature").innerText = `${current.temperature_2m} °C`;
+        document.getElementById("feels-like").innerText = `${current.apparent_temperature} °C`;
+        document.getElementById("humidity").innerText = `${current.relative_humidity_2m} %`;
+        document.getElementById("wind-speed").innerText = `${current.wind_speed_10m} km/h`;
+
+        // Display dashboard grid
+        weatherDisplay.classList.remove("hidden");
+
+      } catch (error) {
+        errorMessage.innerText = "Error: " + error.message;
+        errorMessage.classList.remove("hidden");
+      } finally {
+        // Hide spinner
+        loader.classList.add("hidden");
+      }
+    }
+  </script>
+</body>
+</html>
